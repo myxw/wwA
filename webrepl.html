@@ -54,7 +54,7 @@
          height:400px;
      }
 </style>
- <span style="color:#FFFFFF"> 当前编辑文件名</span>:<div style="display:inline; color:#FFFFFF" id="file-title"></div>
+ <span style="color:#FFFFFF"> 当前编辑Warming: 文</span>:<div style="display:inline; color:#FFFFFF" id="file-title"></div>
 <input type="file" id="open-file"  value="打开文件" style="display:inline;width:65px" onchange="fopen()"/>
 
 
@@ -158,13 +158,21 @@ function u82t(array) {
  
     return out;
 }
-
-function exe(){
-try{cmd="exec(open(\'"+document.getElementById("file-name").value+"\').read(),globals())";ws.send(cmd)} catch{alert ("登录后使用")}
-}
-
-function del(){
-try{cmd="os.remove('"+document.getElementById("file-name").value+"\')";ws.send(cmd)} catch{alert ("登录后使用")}
+function c_m_d(op){
+	
+	var filename=document.getElementById("file-name").value;
+	if  (!connected) {term.write('\x1b[31mWarming: 登陆后使用\x1b[m\r\n');return;}
+	if  (!filename) {term.write('\x1b[31mWarming: 上传文件名不能为空!\x1b[m\r\n');return;}
+	var cmds="import os;";
+	if(op=="run") cmds+="exec(open(\'"+filename+"\').read(),globals())";
+	if(op=="del") cmds+="os.remove('"+filename+"\')";
+	if(op=="get-list") cmds+="os.listdir()";
+	try{
+		ws.send(cmds)
+		} 
+	catch{
+		term.write('\x1b[31m未连接\x1b[m\r\n');
+	}
 }
 
 
@@ -191,8 +199,9 @@ function  fopen() {
 	
 }
 function upCode(){
+if  (!connected) {term.write('\x1b[31mWarming: 登陆后使用\x1b[m\r\n');return;}
 if(!document.getElementById("file-name").value)
-{alert("文件名为空")}
+{term.write('\x1b[31mWarming: 上传文件名不能为空！\x1b[m\r\n');return;}
 put_file_data=s2u8(editor.getValue());
 put_file_name=document.getElementById("file-name").value;
 put_file();
@@ -205,7 +214,7 @@ editor.getSession().setMode("ace/mode/python");
 document.getElementById("editor").style.height=parseInt(document.documentElement.clientHeight*0.7)+"px"
 //editor.setValue(u82t(get_file_data));设置内容
 //
-editor.setValue("\n\n\n                 使用注意事项 \n\n\n1.编辑器是ACE编辑器 来自Github  webrpel 基于官方的魔改而成.\n\n2.选择文件这个是打开本地文件到编辑器，可编辑本地python，目前只设置了高亮类型为PYTHON。\n\n3.删除所有行只针对 \\n 生效.\n\n4.上传 执行 删除 下载 前需要设置文件名，就是上传前面的文本框,注意需要自行写上后缀,\n\n5.使用 执行 删除 下载 后 需要手动在命令行中回车才会生效.此功能只是把指令发到控制台，需要自行确认.\n\n6.此工具只是个人想法的实现,不保证稳定性，使用需自行承担风险.\n\n\n\n\n" );
+editor.setValue("\n\n\n                 使用注意事项 \n\n\n1.编辑器是ACE编辑器 来自Github  webrpel 基于官方的魔改而成.\n\n2.选择文件这个是打开本地文件到编辑器，可编辑本地python，目前只设置了高亮类型为PYTHON。\n\n3.删除所有行只针对 \\n 生效.\n\n4.上传 执行 删除 下载 前需要设置Warming: 文，就是上传前面的文本框,注意需要自行写上后缀,\n\n5.使用 执行 删除 下载 后 需要手动在命令行中回车才会生效.此功能只是把指令发到控制台，需要自行确认.\n\n6.此工具只是个人想法的实现,不保证稳定性，使用需自行承担风险.\n\n\n\n\n 已知的BUG:通过其他IDE 传入单片机的文件 如果包含中文，下载到编辑器会是乱码，但是保存或上传后 打开是正常的。可正常显示。" );
 window.onresize = function(){
 document.getElementById("editor").style.height=parseInt(document.documentElement.clientHeight*0.7)+"px";
 term.cols =parseInt((document.documentElement.clientHeight*0.3-46-75)/12);
@@ -221,12 +230,12 @@ term.cols =parseInt((document.documentElement.clientHeight*0.3-46-75)/12);
 <input type="text" name="webrepl_url" id="url" value="ws://192.168.123.109:8266/" />
 <input type="submit" id="button" value="Connect" onclick="button_click(); return false;" />
  
- <input type="button" id="button" value="获取文件列表" onclick='try{ws.send("import os; os.listdir()")} catch{alert ("登录后使用")}' />
-<input type="text" name="" id="file-name" value="" placeholder="上传文件名不能为空"
+ <input type="button" id="button" value="获取文件列表" onclick='c_m_d("get-list")' />
+<input type="text" name="" id="file-name" value="" placeholder="Warming: 上传文件名不能为空"
 />
 <input type="submit" id="" value="上传" onclick="upCode();return false;" />
- <input type="button" id="button" value="执行" onclick='exe()' />
-  <input type="button" id="button" value="删除" onclick='del()' />
+ <input type="button" id="button" value="执行" onclick='c_m_d("run")' />
+  <input type="button" id="button" value="删除" onclick='c_m_d("del")' />
    <input style="display:inline" type="button" value="下载" onclick="get_file(); return false;" />
 <span style="color:#49e8ae" id="file-status"  id="put-file-list">(file operation status)</span>
 </form>
@@ -480,8 +489,10 @@ function put_file() {
 }
 
 function get_file() {
-    var src_fname = document.getElementById('file-name').value;
 
+    var src_fname = document.getElementById('file-name').value;
+	if  (!connected) {term.write('\x1b[31mWarming: 登陆后使用\x1b[m\r\n');return;}
+	if  (!src_fname) {term.write('\x1b[31mWarming: 文件名不能为空！\x1b[m\r\n');return;}
     // WEBREPL_FILE = "<2sBBQLH64s"
     var rec = new Uint8Array(2 + 1 + 1 + 8 + 4 + 2 + 64);
     rec[0] = 'W'.charCodeAt(0);
